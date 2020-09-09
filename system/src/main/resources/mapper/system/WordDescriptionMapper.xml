@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.WordDescriptionMapper">
+
+    <resultMap type="IdnWordDescription" id="IdnWordDescriptionResult">
+        <id     property="descriptionId"     column="description_id"     />
+        <result property="oneWordId"   column="one_word_id"   />
+        <result property="updateNum"  column="update_num"   />
+        <result property="status"     column="status"      />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="description"    column="description"    />
+        <result property="createBy"   column="create_by"   />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy"   column="update_by"   />
+        <result property="updateTime" column="update_time" />
+        <result property="remark" column="remark" />
+    </resultMap>
+
+    <sql id="selectDescriptionVo">
+        select d.description_id
+        ,d.one_word_id
+        ,d.update_num
+        ,d.status
+        ,d.del_flag
+        ,d.description
+        ,d.create_by
+        ,d.create_time
+        ,d.update_by
+        ,d.update_time
+        ,d.remark
+        from idn_word_description d
+    </sql>
+
+    <select id="selectByDescription" parameterType="IdnWordDescription" resultMap="IdnWordDescriptionResult">
+        <include refid="selectDescriptionVo"/>
+        where d.del_flag = '0'
+        <if test="oneWordId != null and oneWordId != 0">
+            AND one_word_id = #{oneWordId}
+        </if>
+        order by d.create_time
+    </select>
+
+    <insert id="insertWordDescription" parameterType="IdnWordDescription" >
+        insert into idn_word_description(
+        <if test="descriptionId != null and descriptionId != 0">description_id,</if>
+        <if test="oneWordId != null and oneWordId != 0">one_word_id,</if>
+        <if test="oneWordName != null and oneWordName != ''">one_word_name,</if>
+        <if test="updateNum != null and updateNum != ''">update_num,</if>
+        <if test="status != null and status != ''">status,</if>
+        <if test="description != null and description != ''">description,</if>
+        <if test="remark != null and remark != ''">remark,</if>
+        <if test="createBy != null and createBy != ''">create_by,</if>
+        <if test="updateBy != null and updateBy != ''">update_by,</if>
+        update_time,
+        create_time
+        )values(
+        <if test="descriptionId != null and descriptionId != ''">#{descriptionId},</if>
+        <if test="oneWordId != null and oneWordId != ''">#{oneWordId},</if>
+        <if test="oneWordName != null and oneWordName != ''">#{oneWordName},</if>
+        <if test="updateNum != null and updateNum != ''">#{updateNum},</if>
+        <if test="status != null and status != ''">#{status},</if>
+        <if test="description != null and description != ''">#{description},</if>
+        <if test="remark != null and remark != ''">#{remark},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
+        sysdate(),
+        sysdate()
+        )
+    </insert>
+
+    <delete id="deleteWordDescriptionByIds" parameterType="Long">
+        update idn_word_description set del_flag = '2' where one_word_id in
+        <foreach collection="array" item="oneWordId" open="(" separator="," close=")">
+            #{oneWordId}
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.VocabularyMapper">
+
+    <resultMap type="IdnVocabulary" id="IdnVocabularyResult">
+        <id     property="wordsId"     column="words_id"     />
+        <result property="parentId"   column="parent_id"   />
+        <result property="ancestors"  column="ancestors"   />
+        <result property="wordsName"   column="words_name"   />
+        <result property="orderNum"   column="order_num"   />
+        <result property="status"     column="status"      />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="parentName" column="parent_name" />
+        <result property="createBy"   column="create_by"   />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy"   column="update_by"   />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectWordsVo">
+        select d.words_id
+        ,d.parent_id
+        ,d.ancestors
+        ,d.words_name
+        ,d.order_num
+        ,d.status
+        ,d.del_flag
+        ,d.create_by
+        ,d.create_time
+        ,d.update_by
+        ,d.update_time
+        ,d.remark
+        from idn_vocabulary d
+    </sql>
+
+    <select id="selectWordsList" parameterType="IdnVocabulary" resultMap="IdnVocabularyResult">
+        <include refid="selectWordsVo"/>
+        where d.del_flag = '0'
+        <if test="parentId != null and parentId != 0">
+            AND parent_id = #{parentId}
+        </if>
+        <if test="wordsName != null and wordsName != ''">
+            AND words_name like concat('%', #{wordsName}, '%')
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <!-- 数据范围过滤 -->
+        ${params.dataScope}
+        order by d.parent_id, d.order_num
+    </select>
+
+    <select id="selectWordsById" parameterType="Long" resultMap="IdnVocabularyResult">
+        <include refid="selectWordsVo"/>
+        where words_id = #{wordsId}
+    </select>
+
+    <select id="checkWordsNameUnique" resultMap="IdnVocabularyResult">
+        <include refid="selectWordsVo"/>
+        where words_name=#{wordsName} and parent_id = #{parentId} limit 1
+    </select>
+
+    <insert id="insertWords" parameterType="IdnVocabulary">
+        insert into idn_vocabulary(
+        <if test="wordsId != null and wordsId != 0">words_id,</if>
+        <if test="parentId != null and parentId != 0">parent_id,</if>
+        <if test="wordsName != null and wordsName != ''">words_name,</if>
+        <if test="ancestors != null and ancestors != ''">ancestors,</if>
+        <if test="orderNum != null and orderNum != ''">order_num,</if>
+        <if test="status != null">status,</if>
+        <if test="createBy != null and createBy != ''">create_by,</if>
+        <if test="remark != null and remark != ''">remark,</if>
+        create_time
+        )values(
+        <if test="wordsId != null and wordsId != 0">#{wordsId},</if>
+        <if test="parentId != null and parentId != 0">#{parentId},</if>
+        <if test="wordsName != null and wordsName != ''">#{wordsName},</if>
+        <if test="ancestors != null and ancestors != ''">#{ancestors},</if>
+        <if test="orderNum != null and orderNum != ''">#{orderNum},</if>
+        <if test="status != null">#{status},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        <if test="remark != null and remark != ''">#{remark},</if>
+        sysdate()
+        )
+    </insert>
+
+    <select id="selectNormalChildrenWordsById" parameterType="Long" resultType="int">
+		select count(*) from idn_vocabulary where status = 0 and del_flag = '0' and find_in_set(#{wordsId}, ancestors)
+	</select>
+
+    <select id="selectChildrenWordsById" parameterType="Long" resultMap="IdnVocabularyResult">
+		select * from idn_vocabulary  where find_in_set(#{wordsId}, ancestors)
+	</select>
+
+    <update id="updateWordsChildren" parameterType="java.util.List">
+        update idn_vocabulary set ancestors =
+        <foreach collection="words" item="item" index="index"
+                 separator=" " open="case words_id" close="end">
+            when #{item.wordsId} then #{item.ancestors}
+        </foreach>
+        where words_id in
+        <foreach collection="words" item="item" index="index"
+                 separator="," open="(" close=")">
+            #{item.wordsId}
+        </foreach>
+    </update>
+
+    <update id="updateWords" parameterType="IdnVocabulary">
+        update idn_vocabulary
+        <set>
+            <if test="parentId != null and parentId != 0">parent_id = #{parentId},</if>
+            <if test="wordsName != null and wordsName != ''">words_name = #{wordsName},</if>
+            <if test="ancestors != null and ancestors != ''">ancestors = #{ancestors},</if>
+            <if test="orderNum != null and orderNum != ''">order_num = #{orderNum},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            remark = #{remark},
+            update_time = sysdate()
+        </set>
+        where words_id = #{wordsId}
+    </update>
+
+    <update id="updateWordsStatus" parameterType="IdnVocabulary">
+        update idn_vocabulary
+        <set>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where words_id in (${ancestors})
+    </update>
+
+    <delete id="deleteWordsById" parameterType="Long">
+		update idn_vocabulary set del_flag = '2' where words_id = #{wordsId}
+	</delete>
+
+    <select id="hasChildByWordsId" parameterType="Long" resultType="int">
+		select count(1) from idn_vocabulary
+		where del_flag = '0' and parent_id = #{wordsId} limit 1
+	</select>
+
+    <select id="checkWordsExistUser" parameterType="Long" resultType="int">
+		select count(1) from sys_user where words_id = #{wordsId} and del_flag = '0'
+	</select>
+</mapper>
